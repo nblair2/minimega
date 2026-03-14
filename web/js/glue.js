@@ -350,6 +350,47 @@ function initNamespacesDataTable() {
     }
 }
 
+// Initialize the Help/Commands DataTable
+function initHelpDataTable() {
+    console.log("initHelpDataTable");
+
+    var path = window.location.pathname;
+    path = path.substr(0, path.indexOf("/help"));
+
+    var table = $('#help-dataTable').DataTable({
+        "ajax": {
+            "url": path+"/help.json",
+            "dataSrc": ""
+        },
+        "dom":
+            "<'row'<'col-sm-5'i><'col-sm-7'p>>" +
+            "<'row'<'col-sm-6'l><'col-sm-6'f>>" +
+            "<'row'<'col-sm-12 text-center'B>>" +
+            "<'row'<'col-sm-12'tr>>",
+        "buttons": [
+            'columnsVisibility'
+        ],
+        "autoWidth": false,
+        "paging": true,
+        "lengthChange": true,
+        "lengthMenu": [
+            [25, 50, 100, 200, -1],
+            [25, 50, 100, 200, "All"]
+        ],
+        "pageLength": -1,
+        "columns": [
+            { "title": "Command Pattern", "data": "pattern" },
+            { "title": "Description", "data": "description" },
+        ],
+        "order": [[ 0, 'asc' ]],
+        "stateSave": true,
+        "stateDuration": 0
+    });
+
+    table.draw();
+}
+
+
 // Initialize the VLANs DataTable and set up an automatic reload
 function initVLANsDataTable() {
     console.log("initVLANsDataTable");

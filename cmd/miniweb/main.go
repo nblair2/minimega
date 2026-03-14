@@ -92,6 +92,8 @@ func main() {
 	mux.HandleFunc("/tilevnc", mustAuth(templateHandler))
 	mux.HandleFunc("/montage", mustAuth(templateHandler))
 	mux.HandleFunc("/minibuilder", mustAuth(templateHandler))
+	mux.HandleFunc("/help", mustAuth(templateHandler))
+	mux.HandleFunc("/help.json", mustAuth(helpDocsHandler))
 
 	mux.HandleFunc("/hosts.json", mustAuth(tabularHandler))
 	mux.HandleFunc("/vlans.json", mustAuth(tabularHandler))

@@ -646,6 +646,55 @@ func minibuilderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// helpDocsHandler handles the following URL:
+//
+//	/help.json
+//
+// Returns a JSON array of all available minimega commands with their patterns
+// and short descriptions, parsed from the output of the 'help' command.
+func helpDocsHandler(w http.ResponseWriter, r *http.Request) {
+	cmd := NewCommand(r)
+	cmd.Command = "help"
+
+	type commandEntry struct {
+		Pattern     string `json:"pattern"`
+		Description string `json:"description"`
+	}
+
+	var commands []commandEntry
+
+	for resps := range run(cmd) {
+		for _, resp := range resps.Resp {
+			if resp.Error != "" {
+				log.Errorln(resp.Error)
+				continue
+			}
+
+			for _, line := range strings.Split(resp.Response, "\n") {
+				// Each line from printHelpShort has format:
+				// "{pattern} \t :\t {description} \t"
+				// Using strings.Fields handles both tab and space separators.
+				fields := strings.Fields(line)
+				for i, f := range fields {
+					if f == ":" && i > 0 {
+						pattern := strings.Join(fields[:i], " ")
+						description := strings.Join(fields[i+1:], " ")
+						if pattern != "" && description != "" {
+							commands = append(commands, commandEntry{
+								Pattern:     pattern,
+								Description: description,
+							})
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+
+	respondJSON(w, commands)
+}
+
 func commandsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "must use POST", http.StatusMethodNotAllowed)
