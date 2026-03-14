@@ -34,3 +34,4 @@ packaging/debian/minimega/DEBIAN/prerm
 packaging/debian/tmp/
 packaging/debian/minimega/
 lib/minimega.egg-info/
+miniweb
