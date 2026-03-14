@@ -623,6 +623,127 @@ function connectURL (vm) {
     return "vm/" + vm.name + "/connect";
 }
 
+// Refresh interval for CC tables (in millis)
+var CC_REFRESH_TIMEOUT = 5000;
+
+// Initialize the CC Clients and CC Commands DataTables with auto-refresh
+function initCCDataTables() {
+    var path = window.location.pathname;
+    path = path.substr(0, path.indexOf("/cc"));
+
+    var dtDom =
+        "<'row'<'col-sm-5'i><'col-sm-7'p>>" +
+        "<'row'<'col-sm-6'l><'col-sm-6'f>>" +
+        "<'row'<'col-sm-12 text-center'B>>" +
+        "<'row'<'col-sm-12'tr>>";
+
+    // CC Clients table
+    var clientsTable = $('#cc-clients-dataTable').DataTable({
+        "ajax": {
+            "url": path + "/cc/clients.json",
+            "dataSrc": ""
+        },
+        "dom": dtDom,
+        "buttons": [ 'columnsVisibility' ],
+        "autoWidth": false,
+        "paging": true,
+        "lengthChange": true,
+        "lengthMenu": [
+            [25, 50, 100, -1],
+            [25, 50, 100, "All"]
+        ],
+        "pageLength": -1,
+        "columns": [
+            { "title": "UUID",     "data": "uuid" },
+            { "title": "Hostname", "data": "hostname" },
+            { "title": "Arch",     "data": "arch" },
+            { "title": "OS",       "data": "os" },
+            { "title": "IP",       "data": "ip" },
+            { "title": "MAC",      "data": "mac" }
+        ],
+        "order": [[ 1, 'asc' ]],
+        "stateSave": true,
+        "stateDuration": 0
+    });
+
+    // CC Commands table – first column is an expand toggle
+    var commandsTable = $('#cc-commands-dataTable').DataTable({
+        "ajax": {
+            "url": path + "/cc/commands.json",
+            "dataSrc": ""
+        },
+        "dom": dtDom,
+        "buttons": [ 'columnsVisibility' ],
+        "autoWidth": false,
+        "paging": true,
+        "lengthChange": true,
+        "lengthMenu": [
+            [25, 50, 100, -1],
+            [25, 50, 100, "All"]
+        ],
+        "pageLength": -1,
+        "columns": [
+            {
+                "orderable":      false,
+                "data":           null,
+                "defaultContent": '<i class="fa fa-plus-circle" style="cursor:pointer;"></i>',
+                "width":          "24px"
+            },
+            { "title": "ID",           "data": "id" },
+            { "title": "Prefix",       "data": "prefix" },
+            { "title": "Command",      "data": "command" },
+            { "title": "Responses",    "data": "responses" },
+            { "title": "Background",   "data": "background" },
+            { "title": "Once",         "data": "once" },
+            { "title": "Sent",         "data": "sent" },
+            { "title": "Received",     "data": "received" },
+            { "title": "Connectivity", "data": "connectivity", "visible": false },
+            { "title": "Level",        "data": "level",        "visible": false },
+            { "title": "Filter",       "data": "filter",       "visible": false }
+        ],
+        "order": [[ 1, 'asc' ]],
+        "stateSave": true,
+        "stateDuration": 0
+    });
+
+    // Expand / collapse response details on toggle click
+    $('#cc-commands-dataTable tbody').on('click', 'td:first-child i', function() {
+        var tr  = $(this).closest('tr');
+        var row = commandsTable.row(tr);
+
+        if (row.child.isShown()) {
+            row.child.hide();
+            tr.removeClass('shown');
+            $(this).removeClass('fa-minus-circle').addClass('fa-plus-circle');
+        } else {
+            var cmdId = row.data()["id"];
+            var icon  = $(this);
+            $.getJSON(path + "/cc/responses.json", { id: cmdId }, function(data) {
+                var content;
+                if (data.response && data.response.trim() !== "") {
+                    content = '<pre style="margin:8px 0; white-space:pre-wrap; word-break:break-all;">' +
+                              $('<div>').text(data.response).html() + '</pre>';
+                } else {
+                    content = '<em style="margin:8px 0; display:block;">No responses yet.</em>';
+                }
+                row.child(content).show();
+                tr.addClass('shown');
+                icon.removeClass('fa-plus-circle').addClass('fa-minus-circle');
+            });
+        }
+    });
+
+    // Auto-refresh both tables
+    if (CC_REFRESH_TIMEOUT >= 1000) {
+        setInterval(function() {
+            clientsTable.ajax.reload(null, false);
+            commandsTable.ajax.reload(null, false);
+        }, CC_REFRESH_TIMEOUT);
+    }
+}
+
+
+
 
 // Add more cowbell
 function initCowbell () {

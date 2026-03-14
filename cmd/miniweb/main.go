@@ -104,6 +104,11 @@ func main() {
 
 	mux.HandleFunc("/minibuilder/", mustAuth(minibuilderHandler))
 
+	mux.HandleFunc("/cc", mustAuth(templateHandler))
+	mux.HandleFunc("/cc/clients.json", mustAuth(ccHandler))
+	mux.HandleFunc("/cc/commands.json", mustAuth(ccHandler))
+	mux.HandleFunc("/cc/responses.json", mustAuth(ccHandler))
+
 	mux.HandleFunc("/vm/", mustAuth(vmHandler))
 
 	if *f_namespace == "" {

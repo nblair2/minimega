@@ -440,6 +440,49 @@ func vmsHandler(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, vms)
 }
 
+// ccHandler handles the following URLs:
+//
+//	/cc/clients.json
+//	/cc/commands.json
+//	/cc/responses.json?id=<id>
+func ccHandler(w http.ResponseWriter, r *http.Request) {
+	fields := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(fields) != 2 {
+		http.NotFound(w, r)
+		return
+	}
+
+	cmd := NewCommand(r)
+
+	switch fields[1] {
+	case "clients.json":
+		cmd.Command = "cc clients"
+		respondJSON(w, runTabular(cmd))
+	case "commands.json":
+		cmd.Command = "cc commands"
+		respondJSON(w, runTabular(cmd))
+	case "responses.json":
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			id = "*"
+		}
+		cmd.Command = fmt.Sprintf("cc responses %v", id)
+		var sb strings.Builder
+		for resps := range run(cmd) {
+			for _, resp := range resps.Resp {
+				if resp.Error != "" {
+					log.Errorln(resp.Error)
+					continue
+				}
+				sb.WriteString(resp.Response)
+			}
+		}
+		respondJSON(w, map[string]string{"response": sb.String()})
+	default:
+		http.NotFound(w, r)
+	}
+}
+
 // tabularHandler handles the following URLs:
 //
 //	/vlans.json
