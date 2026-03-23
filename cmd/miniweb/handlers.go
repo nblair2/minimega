@@ -464,7 +464,7 @@ func ccHandler(w http.ResponseWriter, r *http.Request) {
 	case "responses.json":
 		id := r.URL.Query().Get("id")
 		if id == "" {
-			id = "*"
+			id = "all"
 		}
 		cmd.Command = fmt.Sprintf("cc responses %v", id)
 		var sb strings.Builder
