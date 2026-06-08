@@ -485,12 +485,16 @@ Outer:
 		if _, err := io.Copy(tfile, fpart); err != nil {
 			log.Error("copying filepart %v:%v failed: %v", msg.Filename, i, err)
 			fpart.Close()
+			name := tfile.Name()
 			tfile.Close()
+			os.Remove(name)
 			return
 		}
 		if err := fpart.Close(); err != nil {
 			log.Error("closing filepart %v:%v failed: %v", msg.Filename, i, err)
+			name := tfile.Name()
 			tfile.Close()
+			os.Remove(name)
 			return
 		}
 	}
@@ -498,6 +502,7 @@ Outer:
 	name := tfile.Name()
 	if err := tfile.Close(); err != nil {
 		log.Error("closing merged file %v failed: %v", name, err)
+		os.Remove(name)
 		return
 	}
 
@@ -515,6 +520,7 @@ Outer:
 	log.Info("renaming merged file %v to %v", name, fullPath)
 	if err := os.Rename(name, fullPath); err != nil {
 		log.Error("renaming merged file %v to %v failed: %v", name, fullPath, err)
+		os.Remove(name)
 		return
 	}
 	log.Info("merged file ready: %v", fullPath)
