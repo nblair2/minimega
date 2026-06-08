@@ -234,6 +234,7 @@ func iomHelper(file, updatee string) (string, error) {
 func iomWait(file, updatee string) {
 	log.Info("waiting on file: %v", file)
 
+	file = filepath.Clean(file)
 	lastStatus := time.Now()
 
 	meshageStatusLock.RLock()
@@ -243,16 +244,22 @@ func iomWait(file, updatee string) {
 outer:
 	for {
 		for _, f := range iom.Status() {
-			if strings.Contains(f.Filename, file) {
-				log.Info("iomHelper waiting on %v: %v/%v", f.Filename, len(f.Parts), f.NumParts)
+			if filepath.Clean(f.Filename) == file {
+				completed := len(f.Parts)
+				status := fmt.Sprintf("transferring: %v/%v", completed, f.NumParts)
+				if completed == f.NumParts {
+					status = fmt.Sprintf("merging/cleanup: %v/%v", completed, f.NumParts)
+				}
+
+				log.Info("iomHelper waiting on %v: %v", f.Filename, status)
 
 				if updatee != "" && time.Since(lastStatus) >= period {
 					var status string
 
-					if len(f.Parts) == f.NumParts {
+					if completed == f.NumParts {
 						status = fmt.Sprintf("merging file %s", f.Filename)
 					} else {
-						status = fmt.Sprintf("transferring file %s: %f%% complete", f.Filename, float64(len(f.Parts))/float64(f.NumParts)*100.0)
+						status = fmt.Sprintf("transferring file %s: %f%% complete", f.Filename, float64(completed)/float64(f.NumParts)*100.0)
 					}
 
 					sendStatusMessage(status, updatee)

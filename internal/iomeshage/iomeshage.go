@@ -464,9 +464,12 @@ Outer:
 	t := iom.transfers[msg.Filename]
 	iom.transferLock.RUnlock()
 
+	log.Info("merging %v parts for %v", msg.Part, msg.Filename)
+
 	tfile, err := ioutil.TempFile(t.Dir, "cat_")
 	if err != nil {
 		log.Errorln(err)
+		return
 	}
 
 	for i = 0; i < msg.Part; i++ {
@@ -479,12 +482,24 @@ Outer:
 			return
 		}
 
-		io.Copy(tfile, fpart)
-		fpart.Close()
+		if _, err := io.Copy(tfile, fpart); err != nil {
+			log.Error("copying filepart %v:%v failed: %v", msg.Filename, i, err)
+			fpart.Close()
+			tfile.Close()
+			return
+		}
+		if err := fpart.Close(); err != nil {
+			log.Error("closing filepart %v:%v failed: %v", msg.Filename, i, err)
+			tfile.Close()
+			return
+		}
 	}
 
 	name := tfile.Name()
-	tfile.Close()
+	if err := tfile.Close(); err != nil {
+		log.Error("closing merged file %v failed: %v", name, err)
+		return
+	}
 
 	// create subdirectories
 	fullPath := filepath.Join(iom.base, msg.Filename)
@@ -497,7 +512,12 @@ Outer:
 	// Give the file system watcher time to start watching the directory (if it's
 	// not already) before moving the file into it.
 	time.Sleep(500 * time.Millisecond)
-	os.Rename(name, fullPath)
+	log.Info("renaming merged file %v to %v", name, fullPath)
+	if err := os.Rename(name, fullPath); err != nil {
+		log.Error("renaming merged file %v to %v failed: %v", name, fullPath, err)
+		return
+	}
+	log.Info("merged file ready: %v", fullPath)
 
 	log.Debug("changing permissions: %v %v", fullPath, msg.Perm)
 
@@ -516,15 +536,18 @@ func (iom *IOMeshage) destroyTempTransfer(filename string) {
 		return
 	}
 
+	iom.transferLock.Lock()
+	delete(iom.transfers, filename)
+	iom.transferLock.Unlock()
+
 	iom.drainLock.Lock()
 	defer iom.drainLock.Unlock()
+	log.Debug("cleaning up transfer tempdir for %v: %v", filename, t.Dir)
 	err := os.RemoveAll(t.Dir)
 	if err != nil {
 		log.Errorln(err)
 	}
-	iom.transferLock.Lock()
-	delete(iom.transfers, filename)
-	iom.transferLock.Unlock()
+	log.Debug("cleaned up transfer tempdir for %v: %v", filename, t.Dir)
 }
 
 func (iom *IOMeshage) whoHas(filename string, p int64) (string, error) {
