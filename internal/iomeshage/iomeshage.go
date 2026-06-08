@@ -486,14 +486,18 @@ Outer:
 			log.Error("copying filepart %v:%v failed: %v", msg.Filename, i, err)
 			fpart.Close()
 			name := tfile.Name()
-			tfile.Close()
+			if err := tfile.Close(); err != nil {
+				log.Error("closing merged file %v failed: %v", name, err)
+			}
 			os.Remove(name)
 			return
 		}
 		if err := fpart.Close(); err != nil {
 			log.Error("closing filepart %v:%v failed: %v", msg.Filename, i, err)
 			name := tfile.Name()
-			tfile.Close()
+			if err := tfile.Close(); err != nil {
+				log.Error("closing merged file %v failed: %v", name, err)
+			}
 			os.Remove(name)
 			return
 		}
