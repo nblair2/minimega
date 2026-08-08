@@ -24,13 +24,15 @@ import (
 const Default = "Default: "
 
 type Field struct {
-	Field      string // name of the field in the struct
-	ConfigName string // name of the field in the CLI
-	Type       string // field type
-	Doc        string // field documentation
-	Default    string // default value, parsed from doc
-	Validate   string // name of function to validate argument
-	Suggest    string // name of function to use for Suggest
+	Field             string // name of the field in the struct
+	ConfigName        string // name of the field in the CLI
+	Type              string // field type
+	Doc               string // field documentation
+	Default           string // default value, parsed from doc
+	Validate          string // name of function to validate argument
+	Suggest           string // name of function to use for Suggest
+	Alias             string // optional alias CLI name (e.g. "state" for migrate)
+	HelpShortOverride string // optional override for the HelpShort string
 
 	Path   bool // if filepath should be checked
 	Signed bool // for int64 vs uint64
@@ -92,10 +94,6 @@ func (g *Generator) Run() error {
 	g.template = t
 
 	for _, pkg := range g.pkgs {
-		if err := checkTypes(pkg); err != nil {
-			return err
-		}
-
 		// Print the header and package clause.
 		g.Execute("header", struct {
 			Args, Package string
@@ -214,15 +212,17 @@ func (g *Generator) handleNode(node ast.Node) bool {
 				}
 
 				f := Field{
-					Field:      name,
-					ConfigName: configName,
-					Type:       typ.Name,
-					Default:    zero,
-					Validate:   tag.Get("validate"),
-					Suggest:    tag.Get("suggest"),
-					Doc:        doc,
-					Signed:     signed,
-					Path:       strings.Contains(name, "Path"),
+					Field:             name,
+					ConfigName:        configName,
+					Type:              typ.Name,
+					Default:           zero,
+					Validate:          tag.Get("validate"),
+					Suggest:           tag.Get("suggest"),
+					Alias:             tag.Get("alias"),
+					HelpShortOverride: tag.Get("helpshort"),
+					Doc:               doc,
+					Signed:            signed,
+					Path:              strings.Contains(name, "Path"),
 				}
 
 				log.Info("field: %#v", f)
@@ -260,14 +260,16 @@ func (g *Generator) handleNode(node ast.Node) bool {
 				}
 
 				f := Field{
-					Field:      name,
-					ConfigName: configName,
-					Type:       "slice",
-					Default:    zero,
-					Validate:   tag.Get("validate"),
-					Suggest:    tag.Get("suggest"),
-					Doc:        doc,
-					Path:       strings.Contains(name, "Path"),
+					Field:             name,
+					ConfigName:        configName,
+					Type:              "slice",
+					Default:           zero,
+					Validate:          tag.Get("validate"),
+					Suggest:           tag.Get("suggest"),
+					Alias:             tag.Get("alias"),
+					HelpShortOverride: tag.Get("helpshort"),
+					Doc:               doc,
+					Path:              strings.Contains(name, "Path"),
 				}
 
 				g.fields[strctName] = append(g.fields[strctName], f)
@@ -304,14 +306,16 @@ func (g *Generator) handleNode(node ast.Node) bool {
 				}
 
 				f := Field{
-					Field:      name,
-					ConfigName: configName,
-					Type:       "map",
-					Default:    zero,
-					Validate:   tag.Get("validate"),
-					Suggest:    tag.Get("suggest"),
-					Doc:        doc,
-					Path:       strings.Contains(name, "Path"),
+					Field:             name,
+					ConfigName:        configName,
+					Type:              "map",
+					Default:           zero,
+					Validate:          tag.Get("validate"),
+					Suggest:           tag.Get("suggest"),
+					Alias:             tag.Get("alias"),
+					HelpShortOverride: tag.Get("helpshort"),
+					Doc:               doc,
+					Path:              strings.Contains(name, "Path"),
 				}
 
 				g.fields[strctName] = append(g.fields[strctName], f)

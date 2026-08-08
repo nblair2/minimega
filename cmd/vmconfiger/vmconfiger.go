@@ -7,8 +7,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/importer"
-	"go/types"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -43,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	config := &packages.Config{Mode: packages.LoadAllSyntax | packages.LoadFiles}
+	config := &packages.Config{Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax}
 
 	pkgs, err := packages.Load(config, "github.com/sandia-minimega/minimega/v2/cmd/minimega")
 	if err != nil {
@@ -60,21 +58,6 @@ func main() {
 	}
 
 	ioutil.WriteFile("vmconfiger_cli.go", g.Format(), 0644)
-}
-
-func checkTypes(pkg *packages.Package) error {
-	config := types.Config{
-		Importer:         importer.ForCompiler(pkg.Fset, "source", nil),
-		IgnoreFuncBodies: true,
-		FakeImportC:      true,
-	}
-
-	_, err := config.Check(pkg.PkgPath, pkg.Fset, pkg.Syntax, pkg.TypesInfo)
-	if err != nil {
-		return fmt.Errorf("checking package: %v", err)
-	}
-
-	return nil
 }
 
 func camelToHyphenated(s string) string {

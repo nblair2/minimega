@@ -24,10 +24,11 @@ var vmconfigerCLIHandlers = []minicli.Handler{
 `
 
 const stringTemplate = `{
-	HelpShort: "configures {{ .ConfigName }}",
+	HelpShort: {{ if .HelpShortOverride }}"{{ .HelpShortOverride }}"{{ else }}"configures {{ .ConfigName }}"{{ end }},
 	HelpLong: ` + "`{{ .Doc }}`," + `
 	Patterns: []string{
-		"vm config {{ .ConfigName }} [value]",
+		{{ if .Alias }}"vm config {{ .Alias }} [value]",
+		{{ end }}"vm config {{ .ConfigName }} [value]",
 	},
 	{{ if .Suggest }}
 	Suggest: {{ .Suggest }},
@@ -219,6 +220,9 @@ const clearTemplate = `{
 	Patterns: []string{
 		"clear vm config",
 		{{- range . }}
+		{{- if .Alias }}
+		"clear vm config <{{ .Alias }},>",
+		{{- end }}
 		"clear vm config <{{ .ConfigName }},>",
 		{{- end }}
 	},
@@ -242,7 +246,7 @@ const funcsTemplate = `
 {{ range $type, $fields := . }}
 func (v *{{ $type }}) Info(field string) (string, error) {
 	{{- range $fields }}
-		if field == "{{ .ConfigName }}" {
+		if {{ if .Alias }}field == "{{ .Alias }}" || {{ end }}field == "{{ .ConfigName }}" {
 			{{- if eq .Type "string" }}
 			return v.{{ .Field }}, nil
 			{{- else if eq .Type "uint64" }}
@@ -260,7 +264,7 @@ func (v *{{ $type }}) Info(field string) (string, error) {
 
 func (v *{{ $type }} ) Clear(mask string) {
 	{{- range $fields }}
-		if mask == Wildcard || mask == "{{ .ConfigName }}" {
+		if mask == Wildcard || {{ if .Alias }}mask == "{{ .Alias }}" || {{ end }}mask == "{{ .ConfigName }}" {
 			v.{{ .Field }} = {{ .Default }}
 		}
 	{{- end }}
@@ -278,7 +282,7 @@ func (v *{{ $type }} ) WriteConfig(w io.Writer) error {
 			}
 		{{- else if eq .Type "string" "int64" "uint64"}}
 			if v.{{ .Field }} != {{ .Default }} {
-				fmt.Fprintf(w, "vm config {{ .ConfigName }} %v\n", v.{{ .Field }})
+				fmt.Fprintf(w, "vm config {{ if .Alias }}{{ .Alias }}{{ else }}{{ .ConfigName }}{{ end }} %v\n", v.{{ .Field }})
 			}
 		{{- else if eq .Type "slice"}}
 			if len(v.{{ .Field }}) > 0 {
@@ -309,6 +313,24 @@ func (v *{{ $type }} ) ReadConfig(r io.Reader, ns string) error {
 
 		switch field {
 		{{- range $fields }}
+		{{- if .Alias }}
+		case "{{ .Alias }}":
+			{{- if eq .Type "bool" }}
+			v.{{ .Field }}, _ = strconv.ParseBool(config[1])
+			{{- else if eq .Type "map" }}
+			v.{{ .Field }}[config[1]] = config[2]
+			{{- else if eq .Type "string" }}
+			v.{{ .Field }} = config[1]
+			{{- else if eq .Type "int64" }}
+			v.{{ .Field }}, _ = strconv.ParseInt(config[1], 10, 64)
+			{{- else if eq .Type "uint64" }}
+			v.{{ .Field }}, _ = strconv.ParseUint(config[1], 10, 64)
+			{{- else if eq .Type "slice" }}
+			v.{{ .Field }} = strings.Fields(config[1])
+			{{- else }}
+			v.ReadFieldConfig(strings.NewReader(line), "{{ .Alias }}", ns)
+			{{- end }}
+		{{- end }}
 		case "{{ .ConfigName }}":
 			{{- if eq .Type "bool" }}
 			v.{{ .Field }}, _ = strconv.ParseBool(config[1])
