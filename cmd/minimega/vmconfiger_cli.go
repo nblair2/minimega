@@ -317,7 +317,7 @@ By default, images are read from the files directory as specified
 with -filepath. This can be overridden by using an absolute path.
 State images should be booted with a kernel/initrd, disk, or cdrom.
 The state often does not make sense without the corresponding disk file and using it with
-and unrelated disk (or cdrom) is discouraged.
+an unrelated disk (or cdrom) is discouraged.
 Use 'vm save' to generate state images from running VMs.
 
 Note: this configuration only applies to KVM-based VMs.
